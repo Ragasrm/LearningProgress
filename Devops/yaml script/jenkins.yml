@@ -1,0 +1,102 @@
+---
+# This Ansible playbook installs Jenkins on an Ubuntu server. It performs the following tasks:
+# 1. Updates the apt cache.
+# 2. Installs required dependencies (fontconfig and OpenJDK 17).
+# 3. Ensures the /etc/apt/keyrings directory exists.
+# 4. Downloads the Jenkins GPG key and saves it to /etc/apt/keyrings/jenkins-keyring.asc.
+# 5. Adds the Jenkins repository to the apt sources list.
+# 6. Updates the apt cache again after adding the Jenkins repository.
+# 7. Installs Jenkins.
+# 8. Ensures the Jenkins service is started and enabled to start on boot.
+
+# Good idea — running each step as a separate ad-hoc command is a great way to understand what the playbook automates, one task at a time. Here's the equivalent, run from master A, targeting C.
+# 1. Update apt cache
+# bashansible C -i /etc/ansible/hosts -m apt -a "update_cache=yes" --become
+# 2. Install Java + fontconfig
+# bashansible C -i /etc/ansible/hosts -m apt -a "name=fontconfig,openjdk-17-jre state=present" --become
+# 3. Create the keyrings directory
+# bashansible C -i /etc/ansible/hosts -m file -a "path=/etc/apt/keyrings state=directory mode=0755" --become
+# 4. Download the Jenkins GPG key
+# bashansible C -i /etc/ansible/hosts -m get_url -a "url=https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key dest=/etc/apt/keyrings/jenkins-keyring.asc mode=0644" --become
+# 5. Add the Jenkins repository
+# bashansible C -i /etc/ansible/hosts -m apt_repository -a "repo='deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/' filename=jenkins state=present" --become
+# 6. Update apt cache again (repo now added)
+# bashansible C -i /etc/ansible/hosts -m apt -a "update_cache=yes" --become
+# 7. Install Jenkins
+# bashansible C -i /etc/ansible/hosts -m apt -a "name=jenkins state=present" --become
+# 8. Start and enable Jenkins
+# bashansible C -i /etc/ansible/hosts -m service -a "name=jenkins state=started enabled=yes" --become
+# 9. Check the initial admin password
+# bashansible C -i /etc/ansible/hosts -m command -a "cat /var/lib/jenkins/secrets/initialAdminPassword" --become
+
+# Quick notes
+
+# --become is the ad-hoc equivalent of become: yes in your playbook — it runs the task with sudo on C.
+# -i /etc/ansible/hosts points to your inventory. If you're using a custom inventory file/path, swap that in.
+# Since Jenkins is already installed on C, running steps 1–8 again will just confirm "already satisfied" (SUCCESS with no changes) — safe to test.
+# These ad-hoc commands are exactly what the playbook automates — the playbook's advantage is running all 9 steps together, in order, with one command, and being reusable/version-controlled.
+
+
+- name: Install Jenkins on Ubuntu
+  hosts: automatin
+  become: yes
+  vars:
+    jenkins_repo_key_url: "https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key"
+    jenkins_keyring_path: "/etc/apt/keyrings/jenkins-keyring.asc"
+    jenkins_repo_string: "deb [signed-by={{ jenkins_keyring_path }}] https://pkg.jenkins.io/debian-stable binary/"
+
+  tasks:
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install required dependencies
+      apt:
+        name:
+          - fontconfig
+          - openjdk-21-jre
+        state: present
+
+    - name: Ensure /etc/apt/keyrings directory exists
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Download Jenkins GPG key
+      get_url:
+        url: "{{ jenkins_repo_key_url }}"
+        dest: "{{ jenkins_keyring_path }}"
+        mode: '0644'
+        force: yes
+
+    - name: Add Jenkins repository to sources list
+      apt_repository:
+        repo: "{{ jenkins_repo_string }}"
+        state: present
+        filename: jenkins
+
+    - name: Update apt cache after adding Jenkins repo
+      apt:
+        update_cache: yes
+
+    - name: Install Jenkins
+      apt:
+        name: jenkins
+        state: present
+
+    - name: Ensure Jenkins service is started and enabled
+      service:
+        name: jenkins
+        state: started
+        enabled: yes
+
+    - name: Read Jenkins initial admin password
+      command: cat /var/lib/jenkins/secrets/initialAdminPassword
+      register: jenkins_password
+      changed_when: false
+
+    - name: Display Jenkins initial admin password
+      debug:
+        msg: "Jenkins initial admin password: {{ jenkins_password.stdout }}"
