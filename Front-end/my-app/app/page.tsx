@@ -1,3 +1,4 @@
+import ThreeButtonProblem from '@/Component/ThreeButton/ThreeButtonProblem'
 
 export default function Home() {
   return (
@@ -6,6 +7,8 @@ export default function Home() {
         <h1>
           Welcome to learn space..!
           </h1>
+
+          <ThreeButtonProblem />
       </main>
     </div>
   );
