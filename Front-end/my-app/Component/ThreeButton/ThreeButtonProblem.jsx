@@ -1,5 +1,5 @@
 "use client"
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 
 function ThreeButtonProblem() {
   const threeButtonObject = [
@@ -13,11 +13,28 @@ function ThreeButtonProblem() {
     },
     {
       name: "red",
-      color: "red",
+      color: "green",
     },
   ]
 
-  const [selectedButton, setSelectedButton] = useState(null)
+  const [selectedButton, setSelectedButton] = useState(null);
+  const [selectedColour, setselectedColour] = useState("");
+  const target = useRef(null);
+
+  const ClientFunction = (buttonName, buttonColor) =>()=> {
+    setSelectedButton(buttonName)
+
+    if(target.current) {
+      clearTimeout(target.current);
+    }
+
+    target.current = setTimeout(() => {
+      setselectedColour(buttonColor);
+    }, 3000);
+
+  }
+
+
   return (
     <div>
       {
@@ -27,14 +44,14 @@ function ThreeButtonProblem() {
               border: "1px solid #ccc", color: "black", fontSize: "16px", cursor: "pointer"
              }} 
              
-             onClick={() => setSelectedButton(button.name)}
+             onClick={ClientFunction(button.name, button.color)}
             >
               {button.name}
             </button>
           )
         })  
       }
-      <h1>{selectedButton}</h1>
+      <h1 style={{color:selectedColour}}>{selectedButton}</h1>
     </div>
   )
 }
