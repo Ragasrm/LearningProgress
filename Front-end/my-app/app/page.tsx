@@ -1,4 +1,5 @@
 import ThreeButtonProblem from '@/Component/ThreeButton/ThreeButtonProblem'
+import List from '@/Component/apiCallAndList/List'
 
 export default function Home() {
   return (
@@ -8,7 +9,8 @@ export default function Home() {
           Welcome to learn space..!
           </h1>
 
-          <ThreeButtonProblem />
+          {/* <ThreeButtonProblem /> */}
+          <List/>
       </main>
     </div>
   );
